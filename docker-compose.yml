@@ -1,8 +1,11 @@
 services:
   # Optional: only if you use ProtonMail. Any IMAP provider works;
   # point IMAP_HOST/IMAP_PORT at it directly and delete this service.
+  # This is a COMMUNITY image handling your mail credentials, pinned to the
+  # digest I actually run. Review it, re-pin it, or replace it with your own
+  # build if supply chain risk keeps you up at night. It should.
   protonmail-bridge:
-    image: shenxn/protonmail-bridge:latest
+    image: ghcr.io/videocurio/proton-mail-bridge@sha256:d44f6b12650c6b0f9e0aefee192d65c6e46d0a22bd5ec189e8624812fd139c8b
     container_name: protonmail-bridge
     restart: unless-stopped
     volumes:
@@ -17,6 +20,8 @@ services:
     env_file: .env
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - ./poller/poller.py:/app/poller.py:ro
 

@@ -39,7 +39,9 @@ so ProtonMail Bridge runs in Docker and exposes the account as IMAP on
 localhost. The bridge uses a self-signed cert, which is why the example env
 sets `TLS_VERIFY=false`; that setting is for localhost only, and verification
 stays on for anything else. If you use Gmail or anything normal you can skip
-the bridge entirely and point straight at your provider.
+the bridge entirely and point straight at your provider. The compose pins
+the bridge image to the exact digest running in my house; it's a community
+image, so read the comment above it before trusting it with credentials.
 
 A filter at the mail provider moves anything addressed to the print alias
 into its own folder, so the script never touches the real inbox. That filter
@@ -96,7 +98,8 @@ Somebody who knew the print address and an allowlisted address could print
 at my house. I thought about requiring SPF/DKIM checks and decided the worst
 case is wasted paper, so I left it off. It's there if your threat model
 disagrees: set `REQUIRE_AUTH_PASS=true` and the script also requires an SPF
-or DKIM pass in the Authentication-Results header. Fair warning that this
+or DKIM pass in the Authentication-Results header. Auth failures reject
+silently, no confirmation, same backscatter logic as strangers. Fair warning that this
 just reads the header your provider stamped, and headers can be forged too.
 It raises the bar, it is not a bouncer. Keeping the print address off the
 public internet helps more than either. Mine only exists in family address

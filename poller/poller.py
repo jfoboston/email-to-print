@@ -50,6 +50,11 @@ REPLY_ON_REJECT = env("REPLY_ON_REJECT", "false").lower() == "true"
 PRINT_OPTS = {"sides": env("SIDES", "one-sided"), "media": env("MEDIA", "letter")}
 HEALTH_BIND = env("HEALTH_BIND", "127.0.0.1")
 
+_LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
+if not TLS_VERIFY and not (IMAP_HOST in _LOCAL_HOSTS and SMTP_HOST in _LOCAL_HOSTS):
+    logging.critical("TLS_VERIFY=false is only allowed for localhost (bridge). "
+                     "IMAP_HOST=%s SMTP_HOST=%s", IMAP_HOST, SMTP_HOST); sys.exit(2)
+
 os.environ["CUPS_SERVER"] = CUPS_SERVER
 HEALTH_PORT = int(env("HEALTH_PORT", "2631"))
 _state = {"started": time.time(), "last_poll": None, "last_poll_ok": False, "printed_total": 0, "rejected_total": 0, "errors_total": 0}
@@ -170,7 +175,11 @@ def process(M, uid):
     if typ != "OK" or not data or not data[0]: return
     msg = email.message_from_bytes(data[0][1])
     if PRINT_TO not in addrs(msg, "To", "Cc", "Delivered-To", "X-Original-To", "X-Forwarded-To"):
-        return
+        # In the watch folder but not addressed to the print alias (misfiled,
+        # or Bcc which carries no header). Move it out so it isn't refetched
+        # every poll. If you legitimately Bcc your printer, stop.
+        log.warning("REJECT not addressed to %s (in %s anyway)", PRINT_TO, SOURCE_FOLDER)
+        move(M, uid, REJECTED_FOLDER); _state["rejected_total"] += 1; return
     frm = parseaddr(msg.get("From", ""))[1].lower()
     subj = dh(msg.get("Subject", "(no subject)"))
     log.info("candidate from=%s subj=%r", frm, subj)
@@ -183,6 +192,7 @@ def process(M, uid):
         log.warning("REJECT failed SPF/DKIM: %s", frm); move(M, uid, REJECTED_FOLDER); return
     printed, errors = [], []
     with tempfile.TemporaryDirectory() as wd:
+        idx = 0
         for part in msg.walk():
             if part.get_content_maintype() == "multipart": continue
             fn = dh(part.get_filename() or ""); disp = (part.get("Content-Disposition") or "").lower()
@@ -194,7 +204,8 @@ def process(M, uid):
             ext = os.path.splitext(fn)[1].lower()
             raw = os.path.basename(fn) if fn else "attachment" + (mimetypes.guess_extension(ctype) or ".bin")
             clean = "".join(c if c.isalnum() or c in "._- " else "_" for c in raw)[-120:].strip(". ") or "attachment.bin"
-            safe = os.path.join(wd, clean)
+            idx += 1
+            safe = os.path.join(wd, f"{idx:02d}-{clean}")
             with open(safe, "wb") as f: f.write(payload)
             if ctype in NATIVE_CTYPES or ext in NATIVE_EXT: target = safe
             elif ext in OFFICE_EXT:
@@ -221,11 +232,10 @@ def process(M, uid):
 
 def poll_once(M):
     M.select(SOURCE_FOLDER)
-    uids = []
-    for hdr in ("TO", "DELIVERED-TO"):
-        typ, data = M.uid("SEARCH", None, "HEADER", hdr, PRINT_TO)
-        if typ == "OK" and data and data[0]: uids += data[0].split()
-    uids = list(dict.fromkeys(uids))
+    # Everything in the dedicated folder is a candidate; process() filters on
+    # PRINT_TO. (Header SEARCH missed Cc/X-Original-To-only routing.)
+    typ, data = M.uid("SEARCH", None, "ALL")
+    uids = data[0].split() if typ == "OK" and data and data[0] else []
     if uids: log.info("%d candidate message(s) in %s", len(uids), SOURCE_FOLDER)
     for uid in uids:
         try: process(M, uid)
