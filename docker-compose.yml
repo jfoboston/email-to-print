@@ -1,0 +1,24 @@
+services:
+  # Optional: only if you use ProtonMail. Any IMAP provider works;
+  # point IMAP_HOST/IMAP_PORT at it directly and delete this service.
+  protonmail-bridge:
+    image: shenxn/protonmail-bridge:latest
+    container_name: protonmail-bridge
+    restart: unless-stopped
+    volumes:
+      - bridge-data:/root
+    network_mode: host   # exposes IMAP on 127.0.0.1:1143, SMTP on 127.0.0.1:1025
+
+  print-poller:
+    build: ./poller
+    container_name: print-poller
+    restart: unless-stopped
+    network_mode: host   # needs to reach the bridge on localhost and cupsd on the host
+    env_file: .env
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./poller/poller.py:/app/poller.py:ro
+
+volumes:
+  bridge-data:
