@@ -65,7 +65,8 @@ The script polls that folder once a minute:
   speaking that's at-least-once: if the process died between printing and
   moving, you'd get a duplicate. I expected to regret this and haven't.
 - Allowlisted senders get a confirmation email whether the print worked or
-  not, which sounds like a gimmick until someone prints from the grocery
+  not, unless you enable auth checks and the message fails them. It sounds
+  like a gimmick until someone prints from the grocery
   store and wants to know if it worked. Rejected strangers get silence by
   default, on purpose. Their From address is unverified, and replying to
   spoofed mail is how you become a backscatter cannon.
