@@ -9,6 +9,11 @@ A bunch of people asked for a writeup after I posted about this, so this
 README is the writeup. Fair warning that none of it is clever. It's mostly
 plumbing, and half of it is a mail filter.
 
+> **The expanded version** — full architecture walkthrough plus answers to every
+> question from the Reddit thread (duplex control, dedup, the watched-folder and
+> QR-card variants) — lives here:
+> https://benchnotes.net/blog/email-to-print-self-hosted/
+
 The reason it exists is dumber than the system. My wife would airdrop me a
 permission slip, I'd open it on my desktop, print it, and wonder why I was
 involved at all. The printer vendors solve this with their cloud print
