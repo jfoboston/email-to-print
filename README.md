@@ -9,9 +9,8 @@ A bunch of people asked for a writeup after I posted about this, so this
 README is the writeup. Fair warning that none of it is clever. It's mostly
 plumbing, and half of it is a mail filter.
 
-> **The expanded version** — full architecture walkthrough plus answers to every
-> question from the Reddit thread (duplex control, dedup, the watched-folder and
-> QR-card variants) — lives here:
+> There is a longer writeup with the architecture diagram and the thread
+> discussion, if you want the reasoning rather than the setup:
 > https://benchnotes.net/blog/email-to-print-self-hosted/
 
 The reason it exists is dumber than the system. My wife would airdrop me a
@@ -157,6 +156,20 @@ would have gotten me.
 **I'm not in the US and letter paper is wrong.**
 Set `MEDIA=a4` in your `.env`. `SIDES=two-sided-long-edge` gets you duplex
 while you're in there.
+
+## If you are setting this up
+
+Two things bit me around this build that are not really part of it, so they
+live separately rather than bloating this README:
+
+- Locking down the mail domain once something automated is listening on it.
+  SPF, DKIM, DMARC to reject, and MTA-STS:
+  https://benchnotes.net/blog/dmarc-mta-sts-homelab/
+- Reaching services at home without opening a port, which is how the rest of
+  my boxes are exposed: https://benchnotes.net/blog/cloudflare-tunnel-no-ports/
+
+Neither is required to run this. The allowlist is the only thing here that is
+genuinely load bearing for safety.
 
 ## License
 
